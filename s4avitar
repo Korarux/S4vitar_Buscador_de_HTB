@@ -1,0 +1,221 @@
+#!/bin/bash 
+
+#Colours
+greenColour="\e[0;32m\033[1m"
+endColour="\033[0m\e[0m"
+redColour="\e[0;31m\033[1m"
+blueColour="\e[0;34m\033[1m"
+yellowColour="\e[0;33m\033[1m"
+purpleColour="\e[0;35m\033[1m"
+turquoiseColour="\e[0;36m\033[1m"
+grayColour="\e[0;37m\033[1m"
+
+
+function ctrl_c(){
+  echo -e "\n\n${yellowColour}[!]Nos priramos de esta DICTADURA${endColour}"
+  tput cnorm && exit 1
+}
+
+#Crtl + C
+trap ctrl_c INT 
+
+#VariablesGlobales
+
+main_url="https://htbmachines.github.io/bundle.js"
+
+function HelpPanel(){
+  echo -e "\n${purpleColour}[+]${endColour}${yellowColour}Uso de parametros->${endcolour}"
+  echo -e "\t${blueColor}[~] m) Listando nombre de la Maquina${endColour}"
+  echo -e "\t${redColour}[~] u) Buscando upates${endColour}"
+  echo -e "\t${greenColour}[~] h) Panel de HELP${endColour}"
+  echo -e "\t${turquoiseColour}[~] i) Buscar maquina por direccion ipV4${endColour}"
+  echo -e "\t${redColour}[~] y) Link de youtube ${endcolour}"
+  echo -e "\t${grayColour}[~] d) Listar maquinas por la dificultad${endColour}"
+  echo -e "\t${blueColour}[~] o) Buscar por el sistema oprerativo${endColour}"
+  echo -e "\t${yellowColour}[~] s) Buscar por skills${endColour}"
+}
+
+function updateFiles(){
+tput civis
+echo -e "\n${purpleColour} [+] Iniciando busqueda de actualizaciones...${endColur}"
+if [ ! -f bundle.js  ]; then
+  curl -s $main_url > bundle.js
+  js-beautify bundle.js | sponge bundle.js
+echo -e "[~] Todo listo ;D"
+tput cnorm
+else
+tput civis
+echo -e "\n ${yellowColur}[+]Buscando actualizaciones${endColour}"
+curl -s $main_url > bundle_temp.js
+js-beautify bundle_temp.js | sponge bundle_temp.js
+md5_temp_value="$(md5sum bundle_temp.js | awk '{print $1}')"
+md5_original_value="$(md5sum bundle.js | awk '{print $1}')"
+
+  if [ "$md5_temp_value" == "$md5_original_value" ]; then
+     echo [+]Sin actualizaciones
+     rm bundle_temp.js
+  else
+     echo [!]Hay actualizaciones
+     rm bundle.js && mv bundle_temp.js bundle.js
+     echo -e "\n ${greenColour}[+]Todo ha sido actualizado${endColour}"
+  fi
+
+fi
+tput cnorm
+}
+
+function searchMachine(){
+ machineName="$1"
+ #chekerName="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+# machineIP="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|name:|ip:|so:|dificultad:|skills:|youtube:|like:|activeDirectory" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+
+
+#if  [ "$machineName" ]; then
+ #if [ "$chekerName" ]; then
+  #echo -e "${yellowColour}[+] Propiedades de la maquina:${endColour}${blueColour} $machineName${endColour}"
+  #cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//'
+
+
+  machineNombre="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|ip:|so:|dificultad:|skills:|youtube:|like:|activeDirectory:" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+  machineIP="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|name:|so:|dificultad:|skills:|youtube:|like:|activeDirectory:" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+  machineSo="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|ip:|name:|dificultad:|skills:|youtube:|like:|activeDirectory:" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+  machinedificultad="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|ip:|so:|name:|skills:|youtube:|like:|activeDirectory:" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+  machineSkills="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|ip:|so:|dificultad:|name:|youtube:|like:|activeDirectory:" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+  machineYoutube="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta|ip:|so:|dificultad:|skills:|name:|like:|activeDirectory:" | tr -d '"' | tr -d ',' | sed 's/^ *//')"
+
+if  [ "$machineName" ]; then
+  echo -e "${redColour}$machineNombre ${endColour}"
+  echo -e "${blueColour}$machineIP ${endColour}"
+  echo -e "${yellowColour}$machineSo ${endColour}"
+  echo -e "${purpleColour}$machinedificultad ${endColour}"
+  echo -e "${greenColour}$machineSkills ${endColour}"
+  echo -e "${redColour}$machineYoutube ${endColour}"
+else  
+  echo -e "${redColour}[404]La maquian no existe${endColour}"
+ fi
+}
+
+function searchIP(){
+ ipAdress="$1"
+ machineName="$(cat bundle.js | grep "ip: \"$ipAdress\"" -B 3 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',')"
+
+if [ "$machineName" ]; then
+ echo -e "${yellowColour}[+]La ip $ipAdress corresponde a :${endColour}${blueColour} $machineName${endColour}"
+else
+ echo -e "${redColour}[404]Error${endColour}"
+fi
+}
+
+function getYoutubelink(){
+ machineName="$1"
+ youtubeLink="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//' | grep youtube | awk 'NF{print$NF}')"
+
+if [ $youtubeLink ]; then
+  echo -e "${grayColour} [+]Link de youtube ->${endColour}${redColour} $youtubeLink ${endColour}"
+else
+  echo -e "${redColour} [404]Error ${endColour}"
+fi
+}
+
+function getMachinesDifficulty(){
+ difficulty="$1"
+ results_check="$(cat bundle.js | grep "dificultad: \"$difficulty\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
+ 
+if [ "$results_check" ]; then
+    echo -e "${yellowColour}[+]estas son las maquinas con la dificultad $difficulty ${endcolour}"
+    cat bundle.js | grep "dificultad: \"$difficulty\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+
+else
+    echo -e "${redColour}[404]Error${endColour}"
+fi
+}
+
+function getOSmachines(){
+ os="$1"
+ os_results="$(cat bundle.js | grep "so: \"$os\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
+
+if [ "$os_results" ]; then
+#  echo -e "${grayColour}[+]Mostrando maquinas de${endColour} $os"
+if [ "$os" == "Linux" ]; then
+  #cat bundle.js | grep "so: \"$os\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+  echo -e "${grayColour}[+]Mostrando maquinas de${endColour}${redColour} $os${endColour}"
+  echo -e "${redColour}$os_results${endColour}"
+elif [ "$os" == "Windows" ]; then
+    echo -e "${grayColour}[+]Mostrando maquinas de${endColour}${blueColour} $os${endColour}"
+    echo -e "${blueColour}$os_results${endColour}"
+    #cat bundle.js | grep "so: \"$os\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+fi
+else
+  echo -e "${redColour} [404] Error ${endColour}"
+
+#cat bundle.js | grep "so: \"Windows\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+fi
+}
+
+function getOSDifficultymachines(){
+ difficulty="$1"
+ os="$2"
+ resultados="$(cat bundle.js | grep "so: \"$os\"" -C 4 | grep "dificultad: \"$difficulty\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
+if [ "$resultados" ]; then
+ echo -e "[+] Se aplica una busquedea por la dificultad -> $difficulty y el sistema operativo -> $os"
+ cat bundle.js | grep "so: \"$os\"" -C 4 | grep "dificultad: \"$difficulty\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+ #cat bundle.js | grep "so: \"$os\"" -C 4 | grep "dificultad: \"$difficulty\"" -B 5 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+else
+  echo -e "${redColour}[404]Error${endColour}"
+fi
+}
+
+function getSkill(){
+ skill="$1"
+
+ check_skill="$(cat bundle.js | grep "skills: " -B 6 | grep "$skill" -i -B 6 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column)"
+
+if [ "$check_skill" ]; then
+
+  echo -e "${yellowColour}[+] Se va a buscar por la skill${endColour}${blueColour} $skill${endColour}"
+  cat bundle.js | grep "skills: " -B 6 | grep "$skill" -i -B 6 | grep "name: " | awk 'NF{print$NF}' | tr -d '"' | tr -d ',' | column
+else
+  echo -e "${redColour}[404]Error${endColour}"
+
+fi
+}
+
+#Indicadores
+ declare -i parameter_counter=0
+
+#Chivato de currazo
+ declare -i chivato_difficulty=0
+ declare -i chivato_os=0
+
+while getopts "m:ui:y:d:o:s:h" arg; do
+ case $arg in 
+   m) machineName="$OPTARG"; let parameter_counter+=1;;
+   u) let parameter_counter+=2;;
+   i) ipAdress="$OPTARG"; let parameter_counter+=3;;
+   y) machineName="$OPTARG"; let parameter_counter+=4;;
+   d) difficulty="$OPTARG"; chivato_difficulty=1;  let parameter_counter+=5;;
+   o) os="$OPTARG"; chivato_os=1; let parameter_counter+=6;;
+   s) skill="$OPTARG"; let parameter_counter+=7;;
+   h) ;;
+ esac
+done 
+
+if [ $parameter_counter -eq 1 ]; then
+ searchMachine $machineName
+elif [ $parameter_counter -eq 2 ]; then
+ updateFiles
+elif [ $parameter_counter -eq 3 ]; then
+ searchIP $ipAdress
+elif [ $parameter_counter -eq 4 ]; then
+ getYoutubelink $machineName
+elif [ $parameter_counter -eq 5 ]; then
+ getMachinesDifficulty $difficulty
+elif [ $parameter_counter -eq 6 ]; then
+ getOSmachines $os
+elif [ $chivato_difficulty -eq 1  ] && [ $chivato_os -eq 1 ]; then
+ getOSDifficultymachines $difficulty $os
+elif [ $parameter_counter -eq 7  ]; then
+ getSkill "$skill"
+else
+ HelpPanel
+fi
